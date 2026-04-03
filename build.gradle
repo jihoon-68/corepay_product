@@ -21,6 +21,11 @@ repositories {
 dependencies {
     // 1. Web & Virtual Threads
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    implementation 'io.github.openfeign:feign-hc5'
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
     // 2. Data & JPA
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -37,6 +42,13 @@ dependencies {
      runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
      runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
      **/
+
+    // 카프카
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+
+    // 레디스
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
     // 5. 편의성 및 검증
     implementation 'org.springframework.boot:spring-boot-starter-validation'
