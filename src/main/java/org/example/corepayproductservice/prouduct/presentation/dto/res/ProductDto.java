@@ -18,7 +18,7 @@ public record ProductDto(
         LocalDateTime updatedAt
 ) {
 
-    public static ProductDto of(Product product){
+    public static ProductDto from(Product product){
         return ProductDto.builder()
                 .id(product.getId())
                 .name(product.getName())
