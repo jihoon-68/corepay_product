@@ -1,13 +1,16 @@
 package org.example.corepayproductservice.prouduct.application;
 
 import lombok.RequiredArgsConstructor;
+import org.example.corepayproductservice.prouduct.infrastructure.kafka.ProductEventProducer;
+import org.example.corepayproductservice.prouduct.infrastructure.kafka.event.ProductCreatedEvent;
 import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductCreatReq;
 import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductInfoUpdateReq;
 import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductUpdateAmountReq;
 import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductUpdateCategoryReq;
 import org.example.corepayproductservice.prouduct.presentation.dto.res.ProductDto;
 import org.example.corepayproductservice.prouduct.domain.Product;
-import org.example.corepayproductservice.prouduct.infrastructure.ProductRepository;
+import org.example.corepayproductservice.prouduct.infrastructure.db.ProductRepository;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +22,8 @@ import java.util.stream.Collectors;
 public class BasicProductService implements ProductService{
 
     private final ProductRepository productRepository;
+    private final StringRedisTemplate redisTemplate;
+    private final ProductEventProducer eventProducer;
 
     @Override
     @Transactional
@@ -32,7 +37,21 @@ public class BasicProductService implements ProductService{
                 .build();
 
         Product saveProduct = productRepository.save(product);
-        return ProductDto.of(saveProduct);
+
+        // Redis에 초기 재고 세팅
+        String stockKey = "product:stock:" + saveProduct.getId();
+        redisTemplate.opsForValue().set(stockKey, String.valueOf(req.amount()));
+
+        ProductCreatedEvent event = ProductCreatedEvent.builder()
+                .productId(saveProduct.getId())
+                .name(saveProduct.getName())
+                .price(saveProduct.getPrice())
+                .discount(saveProduct.getDiscount())
+                .build();
+
+        eventProducer.sendProductCreatedEvent(event);
+
+        return ProductDto.from(saveProduct);
     }
 
     @Override
@@ -41,7 +60,7 @@ public class BasicProductService implements ProductService{
         Product product = productRepository.findById(id).orElseThrow();
         product.updateInfo(req.name(), req.price(), req.discount(), req.amount());
         Product saveProduct = productRepository.save(product);
-        return ProductDto.of(saveProduct);
+        return ProductDto.from(saveProduct);
     }
 
     @Override
@@ -68,14 +87,14 @@ public class BasicProductService implements ProductService{
     @Override
     @Transactional(readOnly = true)
     public ProductDto get(Long id) {
-        return ProductDto.of(productRepository.findById(id).orElseThrow());
+        return ProductDto.from(productRepository.findById(id).orElseThrow());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ProductDto> getList() {
         return productRepository.findAll().stream()
-                .map(ProductDto::of)
+                .map(ProductDto::from)
                 .collect(Collectors.toList());
 }
 
