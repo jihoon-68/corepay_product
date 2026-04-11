@@ -1,6 +1,10 @@
 package org.example.corepayproductservice.prouduct.application;
 
 import lombok.RequiredArgsConstructor;
+import org.example.corepayproductservice.prouduct.application.command.CreatedProductCommand;
+import org.example.corepayproductservice.prouduct.application.command.UpdateAmountCommand;
+import org.example.corepayproductservice.prouduct.application.command.UpdateCategoryCommand;
+import org.example.corepayproductservice.prouduct.application.command.UpdateInfoCommand;
 import org.example.corepayproductservice.prouduct.infrastructure.kafka.ProductEventProducer;
 import org.example.corepayproductservice.prouduct.infrastructure.kafka.event.ProductCreatedEvent;
 import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductCreatReq;
@@ -27,20 +31,20 @@ public class BasicProductService implements ProductService{
 
     @Override
     @Transactional
-    public ProductDto creat(ProductCreatReq req) {
+    public ProductDto creat(CreatedProductCommand command) {
         Product product = Product.builder()
-                .name(req.name())
-                .price(req.price())
-                .discount(req.discount())
-                .amount(req.amount())
-                .category(req.category())
+                .name(command.name())
+                .price(command.price())
+                .discount(command.discount())
+                .amount(command.amount())
+                .category(command.category())
                 .build();
 
         Product saveProduct = productRepository.save(product);
 
         // Redis에 초기 재고 세팅
         String stockKey = "product:stock:" + saveProduct.getId();
-        redisTemplate.opsForValue().set(stockKey, String.valueOf(req.amount()));
+        redisTemplate.opsForValue().set(stockKey, String.valueOf(command.amount()));
 
         ProductCreatedEvent event = ProductCreatedEvent.builder()
                 .productId(saveProduct.getId())
@@ -56,19 +60,19 @@ public class BasicProductService implements ProductService{
 
     @Override
     @Transactional
-    public ProductDto updateInfo(Long id, ProductInfoUpdateReq req) {
-        Product product = productRepository.findById(id).orElseThrow();
-        product.updateInfo(req.name(), req.price(), req.discount(), req.amount());
+    public ProductDto updateInfo(UpdateInfoCommand command) {
+        Product product = productRepository.findById(command.id()).orElseThrow();
+        product.updateInfo(command.name(), command.price(), command.discount(), command.amount());
         Product saveProduct = productRepository.save(product);
         return ProductDto.from(saveProduct);
     }
 
     @Override
     @Transactional
-    public boolean updateAmount(Long id, ProductUpdateAmountReq req) {
-        Product product = productRepository.findById(id).orElseThrow();
+    public boolean updateAmount(UpdateAmountCommand command) {
+        Product product = productRepository.findById(command.id()).orElseThrow();
 
-        if(product.decreaseAmount(req.amount())){
+        if(product.decreaseAmount(command.amount())){
             return false;
         }
 
@@ -78,9 +82,9 @@ public class BasicProductService implements ProductService{
 
     @Override
     @Transactional
-    public void updateCategory(Long id, ProductUpdateCategoryReq req) {
-        Product product = productRepository.findById(id).orElseThrow();
-        product.updateCategory(req.category());
+    public void updateCategory(UpdateCategoryCommand command) {
+        Product product = productRepository.findById(command.id()).orElseThrow();
+        product.updateCategory(command.category());
         productRepository.save(product);
     }
 

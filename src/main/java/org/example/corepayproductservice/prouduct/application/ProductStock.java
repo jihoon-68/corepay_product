@@ -3,7 +3,9 @@ package org.example.corepayproductservice.prouduct.application;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.corepayproductservice.prouduct.infrastructure.kafka.ProductEventProducer;
+import org.example.corepayproductservice.prouduct.infrastructure.kafka.event.OrderCancelEvent;
 import org.example.corepayproductservice.prouduct.infrastructure.kafka.event.OrderCreatedEvent;
+import org.example.corepayproductservice.prouduct.infrastructure.kafka.event.StockDecrementedEvent;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -29,7 +31,7 @@ public class ProductStock {
             redisTemplate.opsForValue().increment(stockKey, event.amount());
 
             // 보상 트랜잭션 이벤트 발행 예정 (주문 서버로 취소 요청)
-            eventProducer.sendOrderCancelEvent(event.orderId(), "OUT_OF_STOCK");
+            eventProducer.sendOrderCancelEvent(new OrderCancelEvent(event.orderId(), "OUT_OF_STOCK"));
             return;
         }
 
@@ -37,6 +39,6 @@ public class ProductStock {
         log.info("[재고 차감 성공] 주문 ID: {}, 남은 재고: {}", event.orderId(), remainStock);
 
         // 결제 서버로 결제 진행 요청 이벤트 발행 예정
-        eventProducer.sendStockDecrementedEvent(event.orderId());
+        eventProducer.sendStockDecrementedEvent(new StockDecrementedEvent(event.orderId()));
     }
 }
