@@ -14,6 +14,7 @@ import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductUp
 import org.example.corepayproductservice.prouduct.presentation.dto.res.ProductDto;
 import org.example.corepayproductservice.prouduct.domain.Product;
 import org.example.corepayproductservice.prouduct.infrastructure.db.ProductRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +28,7 @@ public class BasicProductService implements ProductService{
 
     private final ProductRepository productRepository;
     private final StringRedisTemplate redisTemplate;
-    private final ProductEventProducer eventProducer;
+    private final ApplicationEventPublisher publisher;
 
     @Override
     @Transactional
@@ -53,7 +54,7 @@ public class BasicProductService implements ProductService{
                 .discount(saveProduct.getDiscount())
                 .build();
 
-        eventProducer.sendProductCreatedEvent(event);
+        publisher.publishEvent(event);
 
         return ProductDto.from(saveProduct);
     }
