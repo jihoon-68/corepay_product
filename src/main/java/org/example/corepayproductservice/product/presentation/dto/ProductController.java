@@ -1,16 +1,16 @@
-package org.example.corepayproductservice.prouduct.presentation.dto;
+package org.example.corepayproductservice.product.presentation.dto;
 
 import lombok.RequiredArgsConstructor;
-import org.example.corepayproductservice.prouduct.application.command.CreatedProductCommand;
-import org.example.corepayproductservice.prouduct.application.command.UpdateAmountCommand;
-import org.example.corepayproductservice.prouduct.application.command.UpdateCategoryCommand;
-import org.example.corepayproductservice.prouduct.application.command.UpdateInfoCommand;
-import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductCreatReq;
-import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductInfoUpdateReq;
-import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductUpdateAmountReq;
-import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductUpdateCategoryReq;
-import org.example.corepayproductservice.prouduct.presentation.dto.res.ProductDto;
-import org.example.corepayproductservice.prouduct.application.ProductService;
+import org.example.corepayproductservice.product.application.command.CreatedProductCommand;
+import org.example.corepayproductservice.product.application.command.UpdateAmountCommand;
+import org.example.corepayproductservice.product.application.command.UpdateCategoryCommand;
+import org.example.corepayproductservice.product.application.command.UpdateInfoCommand;
+import org.example.corepayproductservice.product.presentation.dto.req.ProductCreatReq;
+import org.example.corepayproductservice.product.presentation.dto.req.ProductInfoUpdateReq;
+import org.example.corepayproductservice.product.presentation.dto.req.ProductUpdateAmountReq;
+import org.example.corepayproductservice.product.presentation.dto.req.ProductUpdateCategoryReq;
+import org.example.corepayproductservice.product.presentation.dto.res.ProductDto;
+import org.example.corepayproductservice.product.application.ProductService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -1,4 +1,4 @@
-package org.example.corepayproductservice.prouduct.domain;
+package org.example.corepayproductservice.product.domain;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

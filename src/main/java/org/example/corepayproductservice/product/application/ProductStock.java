@@ -1,12 +1,12 @@
-package org.example.corepayproductservice.prouduct.application;
+package org.example.corepayproductservice.product.application;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.corepayproductservice.prouduct.domain.Product;
-import org.example.corepayproductservice.prouduct.infrastructure.db.ProductRepository;
-import org.example.corepayproductservice.prouduct.infrastructure.kafka.event.OrderCancelEvent;
-import org.example.corepayproductservice.prouduct.infrastructure.kafka.event.OrderCreatedEvent;
-import org.example.corepayproductservice.prouduct.infrastructure.kafka.event.StockDecrementedEvent;
+import org.example.corepayproductservice.product.domain.Product;
+import org.example.corepayproductservice.product.infrastructure.db.ProductRepository;
+import org.example.corepayproductservice.product.infrastructure.kafka.event.OrderCancelEvent;
+import org.example.corepayproductservice.product.infrastructure.kafka.event.OrderCreatedEvent;
+import org.example.corepayproductservice.product.infrastructure.kafka.event.StockDecrementedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;

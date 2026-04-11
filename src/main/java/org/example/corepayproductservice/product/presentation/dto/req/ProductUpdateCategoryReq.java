@@ -1,6 +1,6 @@
-package org.example.corepayproductservice.prouduct.presentation.dto.req;
+package org.example.corepayproductservice.product.presentation.dto.req;
 
-import org.example.corepayproductservice.prouduct.domain.Category;
+import org.example.corepayproductservice.product.domain.Category;
 
 public record ProductUpdateCategoryReq(
         Category category

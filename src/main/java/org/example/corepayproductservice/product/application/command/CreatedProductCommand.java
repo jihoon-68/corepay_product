@@ -1,7 +1,7 @@
-package org.example.corepayproductservice.prouduct.application.command;
+package org.example.corepayproductservice.product.application.command;
 
 import lombok.Builder;
-import org.example.corepayproductservice.prouduct.domain.Category;
+import org.example.corepayproductservice.product.domain.Category;
 
 @Builder
 public record CreatedProductCommand(

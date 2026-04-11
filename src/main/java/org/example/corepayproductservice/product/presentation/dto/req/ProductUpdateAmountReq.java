@@ -1,4 +1,4 @@
-package org.example.corepayproductservice.prouduct.presentation.dto.req;
+package org.example.corepayproductservice.product.presentation.dto.req;
 
 public record ProductUpdateAmountReq(
         Integer amount

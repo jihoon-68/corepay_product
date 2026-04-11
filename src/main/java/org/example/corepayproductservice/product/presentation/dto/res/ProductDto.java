@@ -1,8 +1,8 @@
-package org.example.corepayproductservice.prouduct.presentation.dto.res;
+package org.example.corepayproductservice.product.presentation.dto.res;
 
 import lombok.Builder;
-import org.example.corepayproductservice.prouduct.domain.Product;
-import org.example.corepayproductservice.prouduct.domain.Category;
+import org.example.corepayproductservice.product.domain.Product;
+import org.example.corepayproductservice.product.domain.Category;
 
 import java.time.LocalDateTime;
 

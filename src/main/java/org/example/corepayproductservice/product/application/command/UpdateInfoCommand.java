@@ -1,4 +1,4 @@
-package org.example.corepayproductservice.prouduct.application.command;
+package org.example.corepayproductservice.product.application.command;
 
 import lombok.Builder;
 

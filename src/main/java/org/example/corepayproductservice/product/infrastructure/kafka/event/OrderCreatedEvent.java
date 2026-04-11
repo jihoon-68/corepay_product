@@ -1,4 +1,4 @@
-package org.example.corepayproductservice.prouduct.infrastructure.kafka.event;
+package org.example.corepayproductservice.product.infrastructure.kafka.event;
 
 import lombok.Builder;
 

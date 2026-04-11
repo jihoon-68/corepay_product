@@ -1,11 +1,11 @@
-package org.example.corepayproductservice.prouduct.infrastructure.kafka;
+package org.example.corepayproductservice.product.infrastructure.kafka;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.corepayproductservice.prouduct.application.ProductStock;
-import org.example.corepayproductservice.prouduct.infrastructure.kafka.event.OrderCreatedEvent;
+import org.example.corepayproductservice.product.application.ProductStock;
+import org.example.corepayproductservice.product.infrastructure.kafka.event.OrderCreatedEvent;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
