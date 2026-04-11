@@ -21,10 +21,8 @@ repositories {
 dependencies {
     // 1. Web & Virtual Threads
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-aop'
-    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
-    implementation 'io.github.openfeign:feign-hc5'
-    implementation 'io.github.resilience4j:resilience4j-spring-boot3'
+    implementation 'org.springframework.boot:spring-boot-starter-aop:3.2.4'
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
     // 2. Data & JPA
@@ -62,6 +60,10 @@ dependencies {
     // 7. Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    runtimeOnly 'com.h2database:h2'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'com.github.codemonstur:embedded-redis:1.4.3'
 }
 
 tasks.named('test') {
