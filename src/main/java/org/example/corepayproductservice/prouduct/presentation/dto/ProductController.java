@@ -1,6 +1,10 @@
 package org.example.corepayproductservice.prouduct.presentation.dto;
 
 import lombok.RequiredArgsConstructor;
+import org.example.corepayproductservice.prouduct.application.command.CreatedProductCommand;
+import org.example.corepayproductservice.prouduct.application.command.UpdateAmountCommand;
+import org.example.corepayproductservice.prouduct.application.command.UpdateCategoryCommand;
+import org.example.corepayproductservice.prouduct.application.command.UpdateInfoCommand;
 import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductCreatReq;
 import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductInfoUpdateReq;
 import org.example.corepayproductservice.prouduct.presentation.dto.req.ProductUpdateAmountReq;
@@ -22,7 +26,15 @@ public class ProductController {
 
     @PostMapping
     public ResponseEntity<ProductDto> createProduct(@RequestBody ProductCreatReq req) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(productService.creat(req));
+        CreatedProductCommand command = CreatedProductCommand.builder()
+                .name(req.name())
+                .price(req.price())
+                .category(req.category())
+                .discount(req.discount())
+                .amount(req.amount())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(productService.creat(command));
     }
 
     @GetMapping("/{id}")
@@ -37,17 +49,35 @@ public class ProductController {
 
     @PatchMapping("/{id}/info")
     public ResponseEntity<ProductDto> updateProductInfo(@PathVariable Long id, @RequestBody ProductInfoUpdateReq req) {
-        return ResponseEntity.ok(productService.updateInfo(id,req));
+        UpdateInfoCommand command = UpdateInfoCommand.builder()
+                .id(id)
+                .name(req.name())
+                .price(req.price())
+                .discount(req.discount())
+                .amount(req.amount())
+                .build();
+
+        return ResponseEntity.ok(productService.updateInfo(command));
     }
 
     @PatchMapping("/{id}/amount")
     public ResponseEntity<Boolean> updateProductAmount(@PathVariable Long id, @RequestBody ProductUpdateAmountReq req) {
-        return ResponseEntity.ok(productService.updateAmount(id,req));
+        UpdateAmountCommand command = UpdateAmountCommand.builder()
+                .id(id)
+                .amount(req.amount())
+                .build();
+
+        return ResponseEntity.ok(productService.updateAmount(command));
     }
 
     @PatchMapping("/{id}/state")
     public ResponseEntity<Void> updateProductCategory(@PathVariable Long id, @RequestBody ProductUpdateCategoryReq req) {
-        productService.updateCategory(id,req);
+        UpdateCategoryCommand command =UpdateCategoryCommand.builder()
+                .id(id)
+                .category(req.category())
+                .build();
+
+        productService.updateCategory(command);
         return ResponseEntity.noContent().build();
     }
 
