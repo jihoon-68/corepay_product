@@ -6,6 +6,7 @@ import org.example.corepayproductservice.product.application.command.CreatedProd
 import org.example.corepayproductservice.product.domain.Category;
 import org.example.corepayproductservice.product.domain.Product;
 import org.example.corepayproductservice.product.infrastructure.db.ProductRepository;
+import org.example.corepayproductservice.product.infrastructure.kafka.event.StockIncreaseEvent;
 import org.example.corepayproductservice.product.presentation.dto.res.ProductDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

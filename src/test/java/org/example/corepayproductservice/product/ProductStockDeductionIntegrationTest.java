@@ -6,12 +6,14 @@ import org.example.corepayproductservice.product.domain.Category;
 import org.example.corepayproductservice.product.domain.Product;
 import org.example.corepayproductservice.product.infrastructure.db.ProductRepository;
 import org.example.corepayproductservice.product.infrastructure.kafka.event.OrderCreatedEvent;
+import org.example.corepayproductservice.product.infrastructure.kafka.event.StockIncreaseEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -42,6 +44,9 @@ public class ProductStockDeductionIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @Autowired
     private KafkaListenerEndpointRegistry kafkaListenerEndpointRegistry;
 
     // 성공/실패 메시지를 각각 받을 대기열
@@ -55,6 +60,7 @@ public class ProductStockDeductionIntegrationTest {
     @BeforeEach
     void setUp() {
         productRepository.deleteAll();
+        redisTemplate.getConnectionFactory().getConnection().flushAll();
         successLatch = new CountDownLatch(1);
         failLatch = new CountDownLatch(1);
         receivedSuccessMessage = null;
@@ -143,5 +149,89 @@ public class ProductStockDeductionIntegrationTest {
             Product updatedProduct = productRepository.findById(productId).orElseThrow();
             assertThat(updatedProduct.getAmount()).isEqualTo(10);
         });
+    }
+
+    @Test
+    @DisplayName("동일한 주문 생성 이벤트가 여러 번 들어와도, 재고 차감은 한 번만 수행되어야 한다. (차감 멱등성 검증)")
+    void deductStock_Idempotency() throws Exception {
+        // 1. Given: 초기 재고 10개 상황
+        Long orderId = 500L;
+        OrderCreatedEvent event = OrderCreatedEvent.builder()
+                .orderId(orderId)
+                .productId(productId)
+                .amount(1) // 1개씩 차감 시도
+                .build();
+        String message = objectMapper.writeValueAsString(event);
+
+        // 2. When: 동일한 주문 생성 메시지를 '연속으로 두 번' 발송
+        kafkaTemplate.send("order-created-topic", message);
+        kafkaTemplate.send("order-created-topic", message);
+
+        // 4. Then 2: DB 검증 (재고가 10개 -> 9개여야 함. 8개면 실패!)
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
+            Product updatedProduct = productRepository.findById(productId).orElseThrow();
+            assertThat(updatedProduct.getAmount())
+                    .as("동일 주문에 대해 재고가 중복으로 차감되었습니다.")
+                    .isEqualTo(9);
+        });
+
+    }
+
+    @Test
+    @DisplayName("결제 실패로 인한 주문 취소 이벤트를 받으면, 차감됐던 재고를 다시 복구한다.")
+    void restoreStock_Success() throws Exception {
+        // 1. Given: 먼저 재고를 2개 깎아놓음 (10 -> 8)
+        // 실제 서비스 로직을 호출하거나, 직접 DB를 수정해서 상황을 만듭니다.
+        Product product = productRepository.findById(productId).orElseThrow();
+        product.decreaseAmount(2);
+        productRepository.save(product);
+
+        Long orderId = 300L;
+        // 결제 실패 시 오더 서버가 발행하는 취소 이벤트 (재고 서버는 이걸 구독해서 복구함)
+        StockIncreaseEvent cancelEvent = StockIncreaseEvent.builder()
+                .orderId(orderId)
+                .productId(productId)
+                .amount(2) // 복구할 수량
+                .build();
+        String message = objectMapper.writeValueAsString(cancelEvent);
+
+        // 2. When: 'stock-increase-topic'으로 메시지 발송 (재고 서버의 복구 로직 트리거)
+        kafkaTemplate.send("stock-increase-topic", message);
+
+        // 3. Then: DB 검증 (재고가 8개 -> 10개로 복구되었는가?)
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
+            Product updatedProduct = productRepository.findById(productId).orElseThrow();
+            // 8개에서 다시 10개로 돌아와야 함
+            assertThat(updatedProduct.getAmount()).isEqualTo(10);
+        });
+    }
+
+    @Test
+    @DisplayName("동일한 주문 취소 이벤트가 두 번 들어와도, 재고 복구는 한 번만 이루어져야 한다. (멱등성 검증)")
+    void restoreStock_Idempotency() throws Exception {
+        // 1. Given: 재고가 8개인 상황
+        Product product = productRepository.findById(productId).orElseThrow();
+        product.decreaseAmount(2);
+        productRepository.save(product);
+
+        Long orderId = 400L;
+        StockIncreaseEvent cancelEvent = StockIncreaseEvent.builder()
+                .orderId(orderId)
+                .productId(productId)
+                .amount(2)
+                .build();
+        String message = objectMapper.writeValueAsString(cancelEvent);
+
+        // 2. When: 똑같은 취소 메시지를 '두 번' 보냄
+        kafkaTemplate.send("stock-increase-topic", message);
+        kafkaTemplate.send("stock-increase-topic", message);
+
+        // 3. Then: 재고가 10개까지만 올라가고 12개가 되면 안 됨
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
+            Product updatedProduct = productRepository.findById(productId).orElseThrow();
+            // 중복 방지가 안 되면 12가 되겠지만, 멱등성이 보장되면 10이어야 함
+            assertThat(updatedProduct.getAmount()).isEqualTo(10);
+        });
+
     }
 }
