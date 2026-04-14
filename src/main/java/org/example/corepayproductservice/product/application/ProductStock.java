@@ -7,10 +7,14 @@ import org.example.corepayproductservice.product.infrastructure.db.ProductReposi
 import org.example.corepayproductservice.product.infrastructure.kafka.event.OrderCancelEvent;
 import org.example.corepayproductservice.product.infrastructure.kafka.event.OrderCreatedEvent;
 import org.example.corepayproductservice.product.infrastructure.kafka.event.StockDecrementedEvent;
+import org.example.corepayproductservice.product.infrastructure.kafka.event.StockIncreaseEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -21,12 +25,20 @@ public class ProductStock {
     private final ApplicationEventPublisher publisher;
     private final ProductRepository productRepository;
 
+    private static final Duration DEFAULT_TTL = Duration.ofMinutes(5);
+
     @Transactional
     public void deductStock(OrderCreatedEvent event) {
         String stockKey = "product:stock:" + event.productId();
 
+        // 중복감지
+        if(isDuplicate(ActionType.DEDUCT,event.orderId())){
+            log.warn("중복된 재고 차감 요청 무시: orderId={}", event.orderId());
+            return;
+        }
+
         // 캐시 동기화 (없으면 DB에서 로드, 아예 없으면 false 반환)
-        if (!syncCacheFromDb(event, stockKey)) {
+        if (!syncCacheFromDb(event.orderId(), event.productId(), stockKey)) {
             return;
         }
 
@@ -43,18 +55,46 @@ public class ProductStock {
         handleSuccess(event, remainStock);
     }
 
+    @Transactional
+    public void increaseStock(StockIncreaseEvent event){
+        String stockKey = "product:stock:" + event.productId();
+
+        // 중복감지
+        if(isDuplicate(ActionType.RESTORE,event.orderId())){
+            log.warn("중복된 재고 복구 요청 무시: orderId={}", event.orderId());
+            return;
+        }
+
+        // 캐시 동기화
+        if (!syncCacheFromDb(event.orderId(), event.productId(), stockKey)) {
+            return;
+        }
+
+        // 레디스 원자적 재고 증가
+        Long remainStock = redisTemplate.opsForValue().increment(stockKey,event.amount());
+
+
+        productRepository.findById(event.productId()).ifPresent(product ->{
+            product.increaseAmount(event.amount());
+            productRepository.save(product);
+        });
+
+        log.info("[재고 복구 성공] 주문 ID: {}, 레디스 남은 재고: {}", event.orderId(), remainStock);
+    }
+
+
     // 캐시 미스 시 DB에서 레디스로 끌어오는 로직
-    private boolean syncCacheFromDb(OrderCreatedEvent event, String stockKey) {
+    private boolean syncCacheFromDb(Long orderId,Long productId, String stockKey) {
         if (Boolean.TRUE.equals(redisTemplate.hasKey(stockKey))) {
             return true; // 이미 캐시에 있으면 패스
         }
 
-        log.info("[캐시 미스] DB에서 상품 조회 시도. 상품 ID: {}", event.productId());
-        Product product = productRepository.findById(event.productId()).orElse(null);
+        log.info("[캐시 미스] DB에서 상품 조회 시도. 상품 ID: {}", productId);
+        Product product = productRepository.findById(productId).orElse(null);
 
         if (product == null) {
-            log.error("[상품 찾을 수 없음] 주문 ID: {}, 상품 ID: {}", event.orderId(), event.productId());
-            publishCancelEvent(event.orderId(), "PRODUCT_NOT_FOUND");
+            log.error("[상품 찾을 수 없음] 주문 ID: {}, 상품 ID: {}", orderId, productId);
+            publishCancelEvent(orderId, "PRODUCT_NOT_FOUND");
             return false;
         }
 
@@ -89,6 +129,16 @@ public class ProductStock {
                 .orderId(event.orderId())
                 .build();
         publisher.publishEvent(stockDecrementedEvent);
+    }
+
+    // 중복 요청인지 확인하고, 처음이면 레디스에 등록합니다.(중복방지)
+    public boolean isDuplicate(ActionType type, Long orderId) {
+        String key = String.format("lock:order:%s:%d", type.getPrefix(), orderId);
+
+        // SETNX (setIfAbsent)를 사용하여 키가 없을 때만 저장하고 TTL을 설정합니다.
+        // 값은 최소한의 용량만 차지하도록 "1"로 설정합니다.
+        Boolean result = redisTemplate.opsForValue().setIfAbsent(key, "1", DEFAULT_TTL);
+        return Boolean.FALSE.equals(result);
     }
 
     // 취소 이벤트 발행 공통화
