@@ -47,23 +47,23 @@ spring:
       port: 6379
       lettuce:
         pool:
-          max-active: 8
-          max-idle: 8
+          max-active: 16
+          max-idle: 16
           min-idle: 0
 
   threads:
     virtual:
       enabled: true
 
-  management:
-    endpoints:
-      web:
-        exposure:
-          include: prometheus, health, info, metrics # 프로메테우스가 접근할 수 있도록 엔드포인트 개방
-    metrics:
-      tags:
-        application: ${spring.application.name} # 그라파나 대시보드에서 서버 필터링할 때 사용
-
   logging:
     level:
       org.hibernate.orm.jdbc.bind: TRACE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health, info, metrics # 프로메테우스가 접근할 수 있도록 엔드포인트 개방
+  metrics:
+    tags:
+      application: ${spring.application.name} # 그라파나 대시보드에서 서버 필터링할 때 사용

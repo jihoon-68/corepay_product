@@ -63,6 +63,11 @@ public class Product {
         return true;
     }
 
+    public void increaseAmount(@NotNull Integer amount){
+        this.amount += amount;
+    }
+
+
     public void updateInfo(String name, Integer price, Integer discount, Integer amount){
         if(name != null && !Objects.equals(this.name, name)){
             this.name = name;
