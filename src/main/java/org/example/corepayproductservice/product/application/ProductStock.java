@@ -2,6 +2,8 @@ package org.example.corepayproductservice.product.application;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.corepayproductservice.product.application.enums.ActionType;
+import org.example.corepayproductservice.product.application.enums.CancelReason;
 import org.example.corepayproductservice.product.domain.Product;
 import org.example.corepayproductservice.product.infrastructure.db.ProductRepository;
 import org.example.corepayproductservice.product.infrastructure.kafka.event.OrderCancelEvent;
@@ -14,7 +16,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.Optional;
 
 @Slf4j
 @Component
@@ -25,7 +26,7 @@ public class ProductStock {
     private final ApplicationEventPublisher publisher;
     private final ProductRepository productRepository;
 
-    private static final Duration DEFAULT_TTL = Duration.ofMinutes(5);
+    private static final Duration DEFAULT_TTL = Duration.ofMinutes(10);
 
     @Transactional
     public void deductStock(OrderCreatedEvent event) {
@@ -74,7 +75,7 @@ public class ProductStock {
         Long remainStock = redisTemplate.opsForValue().increment(stockKey,event.amount());
 
 
-        productRepository.findById(event.productId()).ifPresent(product ->{
+        productRepository.findByIdWithLock(event.productId()).ifPresent(product ->{
             product.increaseAmount(event.amount());
             productRepository.save(product);
         });
@@ -94,7 +95,7 @@ public class ProductStock {
 
         if (product == null) {
             log.error("[상품 찾을 수 없음] 주문 ID: {}, 상품 ID: {}", orderId, productId);
-            publishCancelEvent(orderId, "PRODUCT_NOT_FOUND");
+            publishCancelEvent(orderId, CancelReason.PRODUCT_NOT_FOUND);
             return false;
         }
 
@@ -111,7 +112,7 @@ public class ProductStock {
         redisTemplate.opsForValue().increment(stockKey, event.amount());
 
         // 주문 서버로 취소 이벤트 발행
-        publishCancelEvent(event.orderId(), "OUT_OF_STOCK");
+        publishCancelEvent(event.orderId(), CancelReason.OUT_OF_STOCK);
     }
 
     // 재고 차감 완벽 성공 시 처리 로직
@@ -119,7 +120,7 @@ public class ProductStock {
         log.info("[재고 차감 성공] 주문 ID: {}, 레디스 남은 재고: {}", event.orderId(), remainStock);
 
         // DB에 깎인 재고 업데이트
-        productRepository.findById(event.productId()).ifPresent(product -> {
+        productRepository.findByIdWithLock(event.productId()).ifPresent(product -> {
             product.decreaseAmount(event.amount());
             productRepository.save(product);
         });
@@ -142,7 +143,7 @@ public class ProductStock {
     }
 
     // 취소 이벤트 발행 공통화
-    private void publishCancelEvent(Long orderId, String reason) {
+    private void publishCancelEvent(Long orderId, CancelReason reason) {
         OrderCancelEvent orderCancelEvent = OrderCancelEvent.builder()
                 .orderId(orderId)
                 .reason(reason)
