@@ -24,8 +24,7 @@ public class OrderEventConsumer {
             // 1. 수신한 JSON 문자열을 DTO 객체로 역직렬화
             OrderCreatedEvent event = objectMapper.readValue(message, OrderCreatedEvent.class);
 
-            log.info("[카프카 수신] 주문 ID: {}, 상품 ID: {}, 요청 수량: {}",
-                    event.orderId(), event.productId(), event.amount());
+            log.info("[카프카 수신] 주문 ID: {}, 상품 정보: {}", event.orderId(), event.items());
 
             // 2. 레디스 원자적 재고 차감 비즈니스 로직 호출
             productStock.deductStock(event);
@@ -44,7 +43,7 @@ public class OrderEventConsumer {
             // 1. 수신한 JSON 문자열을 DTO 객체로 역직렬화
             StockIncreaseEvent event = objectMapper.readValue(message, StockIncreaseEvent.class);
 
-            log.info("[카프카 수신] 상품 ID: {}, 복구 수량: {}", event.productId(), event.amount());
+            log.info("[카프카 수신] 복구 제품 정보: {}", event.items());
 
             // 2. 레디스 원자적 재고 차감 비즈니스 로직 호출
             productStock.increaseStock(event);
