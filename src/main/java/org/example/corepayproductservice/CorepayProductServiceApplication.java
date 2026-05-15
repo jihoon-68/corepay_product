@@ -4,8 +4,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
-@SpringBootApplication
 @EnableJpaAuditing
+@SpringBootApplication(scanBasePackages = {
+        "org.example.corepayproductservice",
+        "org.example.corepaycommon"
+})
 public class CorepayProductServiceApplication {
 
     public static void main(String[] args) {
