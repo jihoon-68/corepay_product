@@ -1,4 +1,4 @@
-package org.example.corepayproductservice.product.presentation.dto;
+package org.example.corepayproductservice.product.presentation;
 
 import lombok.RequiredArgsConstructor;
 import org.example.corepayproductservice.product.application.command.CreatedProductCommand;
@@ -25,7 +25,10 @@ public class ProductController {
     private final ProductService productService;
 
     @PostMapping
-    public ResponseEntity<ProductDto> createProduct(@RequestBody ProductCreatReq req) {
+    public ResponseEntity<ProductDto> createProduct(
+            @RequestHeader("X-User-Id") Long sellerId,
+            @RequestBody ProductCreatReq req) {
+
         CreatedProductCommand command = CreatedProductCommand.builder()
                 .name(req.name())
                 .price(req.price())
@@ -37,6 +40,7 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.creat(command));
     }
 
+    // 💡 2. 제품 단건/목록 조회: 보통 누구나 볼 수 있는 public API이므로 헤더 검사 생략 (필요에 따라 추가 가능)
     @GetMapping("/{id}")
     public ResponseEntity<ProductDto> getProduct(@PathVariable Long id) {
         return ResponseEntity.ok(productService.get(id));
@@ -47,8 +51,13 @@ public class ProductController {
         return ResponseEntity.ok(productService.getList());
     }
 
+
     @PatchMapping("/{id}/info")
-    public ResponseEntity<ProductDto> updateProductInfo(@PathVariable Long id, @RequestBody ProductInfoUpdateReq req) {
+    public ResponseEntity<ProductDto> updateProductInfo(
+            @RequestHeader("X-User-Id") Long sellerId,
+            @PathVariable Long id,
+            @RequestBody ProductInfoUpdateReq req) {
+
         UpdateInfoCommand command = UpdateInfoCommand.builder()
                 .id(id)
                 .name(req.name())
@@ -60,8 +69,13 @@ public class ProductController {
         return ResponseEntity.ok(productService.updateInfo(command));
     }
 
+    // 💡 4. 재고 수정: 주문 서버가 카프카를 통해 변경할 수도 있지만, 관리자/판매자가 직접 수정할 수도 있으므로 헤더 추가
     @PatchMapping("/{id}/amount")
-    public ResponseEntity<Boolean> updateProductAmount(@PathVariable Long id, @RequestBody ProductUpdateAmountReq req) {
+    public ResponseEntity<Boolean> updateProductAmount(
+            @RequestHeader("X-User-Id") Long sellerId,
+            @PathVariable Long id,
+            @RequestBody ProductUpdateAmountReq req) {
+
         UpdateAmountCommand command = UpdateAmountCommand.builder()
                 .id(id)
                 .amount(req.amount())
@@ -70,9 +84,14 @@ public class ProductController {
         return ResponseEntity.ok(productService.updateAmount(command));
     }
 
-    @PatchMapping("/{id}/state")
-    public ResponseEntity<Void> updateProductCategory(@PathVariable Long id, @RequestBody ProductUpdateCategoryReq req) {
-        UpdateCategoryCommand command =UpdateCategoryCommand.builder()
+    // 💡 5. 상태/카테고리 수정: URI는 '/state'인데 내부 로직은 'category'였습니다. 둘 중 하나로 통일하는 것이 좋습니다.
+    @PatchMapping("/{id}/category") // URI를 의미에 맞게 category로 변경 (또는 서비스 메서드명을 updateState로 변경)
+    public ResponseEntity<Void> updateProductCategory(
+            @RequestHeader("X-User-Id") Long sellerId,
+            @PathVariable Long id,
+            @RequestBody ProductUpdateCategoryReq req) {
+
+        UpdateCategoryCommand command = UpdateCategoryCommand.builder()
                 .id(id)
                 .category(req.category())
                 .build();
@@ -81,8 +100,13 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
+    // 💡 6. 제품 삭제: 함부로 삭제하면 안 되므로 역시 요청자 ID를 검증합니다.
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteProduct(
+            @RequestHeader("X-User-Id") Long sellerId,
+            @PathVariable Long id) {
+
+        // 서비스 레이어의 delete 메서드 파라미터에 sellerId를 추가하여 "이 사람이 삭제할 권한이 있는지" 체크하도록 유도
         productService.delete(id);
         return ResponseEntity.noContent().build();
     }
