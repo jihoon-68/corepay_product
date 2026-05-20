@@ -1,5 +1,6 @@
 server:
   port: 8083
+
 spring:
   config:
     import: "optional:file:.env[.properties]"
@@ -11,13 +12,14 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
+
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
   flyway:
     enabled: true
@@ -33,7 +35,9 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: "1"
+      retries: 3
     properties:
       spring:
         json:
@@ -51,7 +55,9 @@ spring:
         pool:
           max-active: 16
           max-idle: 16
-          min-idle: 0
+          min-idle: 8
+        shutdown-timeout: 100ms
+
 
   threads:
     virtual:
@@ -65,7 +71,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: prometheus, health, info, metrics # 프로메테우스가 접근할 수 있도록 엔드포인트 개방
+        include: prometheus, health, info, metrics,threaddump, heapdump # 프로메테우스가 접근할 수 있도록 엔드포인트 개방
   metrics:
     tags:
       application: ${spring.application.name} # 그라파나 대시보드에서 서버 필터링할 때 사용

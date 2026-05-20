@@ -3,7 +3,7 @@
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
     <property name="LOG_PATH" value="./logs/product-service"/>
-    <property name="LOG_FILE_NAME" value="order"/>
+    <property name="LOG_FILE_NAME" value="product"/>
 
     <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [TraceID: %X{traceId:-NONE}] --- [%15.15thread] %-40.40logger{39} : %msg%n"/>
 
